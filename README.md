@@ -180,8 +180,8 @@ The current final render flow can:
 - trim the overlay by the aligned offset
 - either put the overlay at `30%` size in the top-right
 - or keep only the base video while still using the aligned overlay audio
-- preserve or mix audio with loudness normalization
-- match the overlay brightness to the detected phone-screen region
+- preserve or mix audio with base-audio denoise plus loudness normalization
+- optionally match the overlay brightness to the detected phone-screen region
 - correct the base video color balance
 - optionally enhance the base video clarity
 

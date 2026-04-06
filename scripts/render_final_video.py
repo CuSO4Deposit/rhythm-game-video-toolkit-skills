@@ -68,11 +68,18 @@ def build_filter_complex(
     return f"{main_video};{audio}"
 
 
+def chain_filters(*filters: str | None) -> str | None:
+    parts = [item for item in filters if item]
+    if not parts:
+        return None
+    return ",".join(parts)
+
+
 def encoder_args(video_codec: str) -> list[str]:
     if video_codec == "libx264":
         return ["-c:v", "libx264", "-preset", "medium", "-crf", "18"]
     if video_codec == "h264_nvenc":
-        return ["-c:v", "h264_nvenc", "-preset", "p5", "-cq", "18", "-b:v", "0"]
+        return ["-c:v", "h264_nvenc", "-preset", "p5", "-cq", "22", "-b:v", "0"]
     raise ValueError(f"Unsupported video codec: {video_codec}")
 
 
@@ -188,9 +195,18 @@ def main() -> None:
     parser.add_argument("--target-i", type=float, default=-16.0)
     parser.add_argument("--target-lra", type=float, default=11.0)
     parser.add_argument("--target-tp", type=float, default=-1.5)
-    parser.add_argument("--no-brightness-match", action="store_true")
+    parser.add_argument(
+        "--overlay-brightness-match",
+        action="store_true",
+        help="Apply brightness matching to the overlay video. Disabled by default because the direct screen recording is treated as the reference image.",
+    )
     parser.add_argument("--enhance-base-clarity", action="store_true")
     parser.add_argument("--no-base-color-match", action="store_true")
+    parser.add_argument(
+        "--no-base-audio-denoise",
+        action="store_true",
+        help="Disable the default conservative denoise step on the base audio before loudness normalization.",
+    )
     parser.add_argument("--no-loudness-match", action="store_true")
     parser.add_argument(
         "--video-codec", choices=["libx264", "h264_nvenc"], default="libx264"
@@ -222,7 +238,7 @@ def main() -> None:
         trim_frames=trim_frames,
         include_clarity=args.enhance_base_clarity,
         include_brightness=(
-            args.video_layout == "pip_top_right_30" and not args.no_brightness_match
+            args.video_layout == "pip_top_right_30" and args.overlay_brightness_match
         ),
         include_color_balance=not args.no_base_color_match,
     )
@@ -256,6 +272,11 @@ def main() -> None:
         overlay_audio_filter = loudnorm_filter_string(
             overlay_stats, args.target_i, args.target_lra, args.target_tp
         )
+        if args.audio_mode in {"base", "mix"} and not args.no_base_audio_denoise:
+            base_audio_filter = chain_filters(
+                "afftdn=nf=-28:om=o",
+                base_audio_filter,
+            )
         loudness = {
             "base": base_stats,
             "overlay": overlay_stats,
@@ -295,7 +316,7 @@ def main() -> None:
         "-c:a",
         "aac",
         "-b:a",
-        "192k",
+        "160k",
         "-shortest",
         str(args.output),
     ]

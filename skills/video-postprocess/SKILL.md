@@ -273,8 +273,8 @@ Final renderer behavior:
 
 - applies base-video color-balance correction by default
 - optionally applies base-video clarity enhancement with `--enhance-base-clarity`
-- applies overlay brightness matching by default
-- applies loudness normalization by default
+- applies overlay brightness matching only when explicitly enabled
+- applies base-audio denoise plus loudness normalization by default
 - supports two visual layouts:
   - `pip_top_right_30`
   - `base_only`
