@@ -1,0 +1,15 @@
+[project]
+name = "video-auto-align"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cli-anything-kdenlive",
+    "numpy>=2.4.4",
+    "opencv-python-headless>=4.13.0.92",
+    "scipy>=1.17.1",
+]
+
+[tool.uv.sources]
+cli-anything-kdenlive = { git = "https://github.com/HKUDS/CLI-Anything.git", subdirectory = "kdenlive/agent-harness" }
