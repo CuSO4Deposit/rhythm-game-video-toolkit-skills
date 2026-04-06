@@ -1,0 +1,3 @@
+display_name: Screen Recording Precompress
+short_description: Normalize raw phone and screen recordings into 60 fps MP4 inputs for alignment.
+default_prompt: Preprocess these raw phone and screen recordings into 60 fps MP4 files using the bundled precompress workflow, and fall back safely when CUDA decode fails.
