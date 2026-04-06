@@ -1,0 +1,3 @@
+display_name: Mug Video Naming
+short_description: Turn a rendered video into the final mug-style filename by asking for only the missing fields.
+default_prompt: Read the timestamp from this rendered video's current filename, ask only for the missing mug naming fields such as game, song, difficulty, optional result, and optional tags, then determine the final filename and rename the file if needed.
