@@ -164,7 +164,7 @@ wheels = [
 ]
 
 [[package]]
-name = "video-auto-align"
+name = "screen-recording-align-edit"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -1,0 +1,3 @@
+display_name: Screen Recording Align Edit
+short_description: Align a phone recording with a direct device recording and render the final output.
+default_prompt: Align this phone-recorded video with the matching direct device screen recording, then render either a top-right 30% PiP output or a base-only output with aligned mixed audio.

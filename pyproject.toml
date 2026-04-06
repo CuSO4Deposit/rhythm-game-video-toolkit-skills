@@ -1,7 +1,7 @@
 [project]
-name = "video-auto-align"
+name = "screen-recording-align-edit"
 version = "0.1.0"
-description = "Add your description here"
+description = "Align a phone or camera recording with a direct device screen recording and render final edited output."
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

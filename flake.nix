@@ -1,5 +1,5 @@
 {
-  description = "Description for the project";
+  description = "Align a phone or camera recording with a direct device screen recording and render final edited output.";
 
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
