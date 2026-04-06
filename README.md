@@ -1,6 +1,6 @@
-# screen-recording-align-edit
+# rhythm-game-video-toolkit
 
-Exploration workspace for frame-accurate alignment between:
+Toolkit for frame-accurate preprocessing, alignment, rendering, and naming across a paired screen-recording workflow:
 
 - an iPad screen recording
 - a phone recording that includes the iPad screen

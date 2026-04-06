@@ -164,7 +164,7 @@ wheels = [
 ]
 
 [[package]]
-name = "screen-recording-align-edit"
+name = "rhythm-game-video-toolkit"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

@@ -1,5 +1,5 @@
 {
-  description = "Align a phone or camera recording with a direct device screen recording and render final edited output.";
+  description = "Toolkit for preprocessing, aligning, rendering, and naming rhythm-game video recordings across external and direct device captures.";
 
   inputs = {
     flake-parts.url = "github:hercules-ci/flake-parts";
