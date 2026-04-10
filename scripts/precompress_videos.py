@@ -32,13 +32,15 @@ def build_attempts(
     output_path: Path,
     fps: int,
 ) -> list[tuple[str, list[str]]]:
-    common = [
+    common_prefix = [
         ffmpeg_bin,
         "-y",
         "-i",
         str(input_path),
         "-r",
         str(fps),
+    ]
+    common_suffix = [
         "-c:a",
         "aac",
         "-b:a",
@@ -76,13 +78,13 @@ def build_attempts(
         ),
         (
             "cpu_decode_nvenc",
-            common[:-6] + ["-c:v", "h264_nvenc", "-preset", "fast"] + common[-6:],
+            common_prefix + ["-c:v", "h264_nvenc", "-preset", "fast"] + common_suffix,
         ),
         (
             "cpu_decode_x264",
-            common[:-6]
+            common_prefix
             + ["-c:v", "libx264", "-preset", "medium", "-crf", "20"]
-            + common[-6:],
+            + common_suffix,
         ),
     ]
 
