@@ -49,6 +49,13 @@ def first_stream(data: dict, codec_type: str) -> dict:
     raise ValueError(f"No {codec_type} stream found.")
 
 
+def duration_seconds(data: dict) -> float:
+    value = data.get("format", {}).get("duration")
+    if value is None:
+        raise ValueError("Could not read container duration.")
+    return float(value)
+
+
 def decode_audio_mono(path: Path, sample_rate: int = 8000) -> np.ndarray:
     ffmpeg = require_tool("ffmpeg")
     cmd = [
@@ -278,7 +285,17 @@ def align_videos(
     probe_base = probe_streams(base)
     probe_overlay = probe_streams(overlay)
     estimates: list[Estimate] = []
+    warnings: list[str] = []
     max_lag_frames = round(max_lag_seconds * fps)
+    base_duration_seconds = duration_seconds(probe_base)
+    overlay_duration_seconds = duration_seconds(probe_overlay)
+    duration_gap_seconds = abs(base_duration_seconds - overlay_duration_seconds)
+    if duration_gap_seconds > max_lag_seconds:
+        warnings.append(
+            "The input duration gap exceeds the current alignment search window. "
+            "If these are the same session, keep the two recording start times within "
+            f"{max_lag_seconds:g}s or increase --max-lag-seconds before trusting the result."
+        )
 
     base_audio = decode_audio_mono(base, sample_rate=audio_sample_rate)
     overlay_audio = decode_audio_mono(overlay, sample_rate=audio_sample_rate)
@@ -419,6 +436,7 @@ def align_videos(
         "overlay": str(overlay.resolve()),
         "fps": fps,
         "max_lag_frames": max_lag_frames,
+        "warnings": warnings,
         "base_streams": {
             "video": first_stream(probe_base, "video"),
             "audio": first_stream(probe_base, "audio"),

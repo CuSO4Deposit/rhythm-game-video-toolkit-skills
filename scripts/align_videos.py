@@ -47,6 +47,7 @@ def main() -> None:
     summary = {
         "base": result["base"],
         "overlay": result["overlay"],
+        "warnings": result["warnings"],
         "recommended_alignment": result["recommended_alignment"],
         "estimates": result["estimates"],
         "screen_detection": result["screen_detection"],
