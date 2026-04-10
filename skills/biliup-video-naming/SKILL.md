@@ -69,6 +69,11 @@ Examples:
 
 If the user does not want an explicit result marker, omit it entirely.
 
+Special case:
+
+- if the result is `AP`, omit the `#result#` segment entirely
+- if the result is `PM`, omit the `#result#` segment entirely
+
 Examples:
 
 - no result:
@@ -99,9 +104,10 @@ Given a rendered file, do this:
    - difficulty
    - optional result
    - optional tags
-3. construct the final mug filename
-4. rename the video
-5. if same-stem sidecar files exist, rename them to the same stem too
+3. if the result is `AP` or `PM`, treat it as an implied clear state and do not write a `#result#` segment
+4. construct the final mug filename
+5. rename the video
+6. if same-stem sidecar files exist, rename them to the same stem too
 
 ## Sidecar Rule
 
