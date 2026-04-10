@@ -91,6 +91,53 @@ def input_args(hwaccel: str | None) -> list[str]:
     raise ValueError(f"Unsupported hwaccel: {hwaccel}")
 
 
+def build_ffmpeg_command(
+    *,
+    ffmpeg_bin: str,
+    base: Path,
+    overlay: Path,
+    output: Path,
+    trim_frames: int,
+    fps: float,
+    hwaccel: str | None,
+    filter_complex: str,
+    video_codec: str,
+) -> list[str]:
+    trim_seconds = trim_frames / fps
+    base_input = [*input_args(hwaccel)]
+    overlay_input = [*input_args(hwaccel)]
+    if trim_frames < 0:
+        base_input.extend(["-ss", f"{abs(trim_seconds):.6f}"])
+    elif trim_frames > 0:
+        overlay_input.extend(["-ss", f"{trim_seconds:.6f}"])
+
+    return [
+        ffmpeg_bin,
+        "-y",
+        *base_input,
+        "-i",
+        str(base),
+        *overlay_input,
+        "-i",
+        str(overlay),
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "[vout]",
+        "-map",
+        "[aout]",
+        *encoder_args(video_codec),
+        "-c:a",
+        "aac",
+        "-b:a",
+        "160k",
+        "-r",
+        f"{fps:g}",
+        "-shortest",
+        str(output),
+    ]
+
+
 def analyze_video_match(
     base: Path,
     overlay: Path,
@@ -295,31 +342,17 @@ def main() -> None:
 
     ffmpeg_bin = "ffmpeg" if args.print_command else require_tool("ffmpeg")
     trim_seconds = trim_frames / args.fps
-    cmd = [
-        ffmpeg_bin,
-        "-y",
-        *input_args(args.hwaccel),
-        "-i",
-        str(args.base),
-        "-ss",
-        f"{trim_seconds:.6f}",
-        *input_args(args.hwaccel),
-        "-i",
-        str(args.overlay),
-        "-filter_complex",
-        filter_complex,
-        "-map",
-        "[vout]",
-        "-map",
-        "[aout]",
-        *encoder_args(args.video_codec),
-        "-c:a",
-        "aac",
-        "-b:a",
-        "160k",
-        "-shortest",
-        str(args.output),
-    ]
+    cmd = build_ffmpeg_command(
+        ffmpeg_bin=ffmpeg_bin,
+        base=args.base,
+        overlay=args.overlay,
+        output=args.output,
+        trim_frames=trim_frames,
+        fps=args.fps,
+        hwaccel=args.hwaccel,
+        filter_complex=filter_complex,
+        video_codec=args.video_codec,
+    )
 
     payload = {
         "trim_frames": trim_frames,
@@ -340,7 +373,29 @@ def main() -> None:
         print(json.dumps(payload, indent=2))
         return
 
-    subprocess.run(cmd, check=True)
+    applied_hwaccel = args.hwaccel
+    try:
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError:
+        if args.hwaccel != "cuda":
+            raise
+        fallback_cmd = build_ffmpeg_command(
+            ffmpeg_bin=ffmpeg_bin,
+            base=args.base,
+            overlay=args.overlay,
+            output=args.output,
+            trim_frames=trim_frames,
+            fps=args.fps,
+            hwaccel=None,
+            filter_complex=filter_complex,
+            video_codec=args.video_codec,
+        )
+        subprocess.run(fallback_cmd, check=True)
+        cmd = fallback_cmd
+        applied_hwaccel = None
+
+    payload["hwaccel"] = applied_hwaccel
+    payload["command"] = shell_join(cmd)
     print(json.dumps(payload, indent=2))
 
 
