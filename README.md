@@ -8,7 +8,7 @@ Toolkit for frame-accurate preprocessing, alignment, rendering, and naming acros
 The immediate target is the picture-in-picture workflow:
 
 - keep the phone recording as the main video
-- place the iPad recording at 30% size in the top-right
+- place the iPad recording at 25% size in the top-right by default
 - preserve both audio tracks
 - normalize loudness when needed
 - optionally correct the phone video's color and clarity
@@ -178,7 +178,7 @@ The repository now also includes:
 The current final render flow can:
 
 - trim the overlay by the aligned offset
-- either put the overlay at `30%` size in the top-right
+- either put the overlay at `25%` size in the top-right by default
 - or keep only the base video while still using the aligned overlay audio
 - preserve or mix audio with base-audio `80 Hz` highpass, denoise, and loudness normalization
 - when using `--audio-mode mix`, refine the remaining base-versus-overlay audio offset after video sync and compensate it on the base track before mixing
@@ -188,8 +188,14 @@ The current final render flow can:
 
 Two common output modes:
 
-- `--video-layout pip_top_right_30`
+- `--video-layout pip_top_right`
 - `--video-layout base_only`
+
+PiP size control:
+
+- use `--pip-scale-percent 25` by default
+- pass a different value such as `--pip-scale-percent 22` or `--pip-scale-percent 30` to tune the overlay size
+- the older `--scale-ratio` flag and `pip_top_right_30` layout name are still accepted for compatibility
 
 Residual mixed-audio alignment policy:
 

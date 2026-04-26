@@ -145,7 +145,7 @@ Do not start with arbitrary `volume=` multipliers as the main solution. They are
 Goal:
 
 - keep the phone recording as main
-- place the iPad recording at 30% size in the top-right
+- place the iPad recording at 25% size in the top-right by default
 
 Practical ffmpeg route:
 
@@ -156,7 +156,7 @@ Practical ffmpeg route:
 Canonical filtergraph shape:
 
 ```text
-[overlay] scale=main_w*0.3:-1 [pip];
+[overlay] scale=main_w*0.25:-1 [pip];
 [base][pip] overlay=x=W-w-margin:y=margin
 ```
 
@@ -222,7 +222,7 @@ python scripts/render_final_video.py \
 
 Defaults:
 
-- overlay scale ratio: `0.30`
+- default PiP scale percent: `25`
 - position: top-right
 - margin: `48`
 - audio mode: `mix`
@@ -276,7 +276,7 @@ Final renderer behavior:
 - applies overlay brightness matching only when explicitly enabled
 - applies base-audio denoise plus loudness normalization by default
 - supports two visual layouts:
-  - `pip_top_right_30`
+  - `pip_top_right`
   - `base_only`
 
 Implementation note:
@@ -298,7 +298,8 @@ Implementation note:
 ## Current Default Advice
 
 - If the offset is already known, prefer `scripts/render_final_video.py`.
-- Use `--video-layout pip_top_right_30` for the current PiP style.
+- Use `--video-layout pip_top_right` for the current PiP style.
+- Adjust PiP size with `--pip-scale-percent`, for example `--pip-scale-percent 22`.
 - Use `--video-layout base_only --audio-mode mix` when you want only the phone video but both audio tracks.
 - If the phone video looks too warm or yellow, keep base color matching enabled.
 - If the phone video looks soft compared with the overlay, add `--enhance-base-clarity`.

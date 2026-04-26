@@ -23,9 +23,9 @@ In this repository, the usual mapping is:
 
 The workflow supports two main output styles:
 
-1. `pip_top_right_30`
+1. `pip_top_right`
    - keep the phone recording as the main video
-   - place the iPad recording at `30%` size in the top-right
+   - place the iPad recording at `25%` size in the top-right by default
    - usually keep mixed audio
 2. `base_only`
    - keep only the phone video
@@ -40,7 +40,7 @@ When the user gives you task folders instead of describing the edit mode explici
 - the default single-video workflow is conservative base-video audio denoise plus loudness normalization at `60 fps`
 - if the task folder contains exactly two video files, treat it as a phone-plus-screen-recording alignment task
 - for two-file tasks, first run the full alignment workflow and keep the weighted-consensus result unless that full path fails
-- for two-file tasks, if the metadata indicates `初见` or `初见标签` and the result is not `AP` or `PM`, default to `pip_top_right_30`
+- for two-file tasks, if the metadata indicates `初见` or `初见标签` and the result is not `AP` or `PM`, default to `pip_top_right`
 - for other two-file tasks, including `AP` or `PM`, default to `base_only`
 
 This default routing is only for cases where the user did not specify a different output style explicitly.
@@ -100,7 +100,7 @@ nix develop -c python scripts/render_final_video.py \
   --output /path/to/output.mp4 \
   --trim-frames <offset_frames> \
   --fps 60 \
-  --video-layout pip_top_right_30 \
+  --video-layout pip_top_right \
   --audio-mode mix \
   --video-codec h264_nvenc \
   --hwaccel cuda \
@@ -116,7 +116,7 @@ python scripts/render_final_video.py \
   --output /path/to/output.mp4 \
   --trim-frames <offset_frames> \
   --fps 60 \
-  --video-layout pip_top_right_30 \
+  --video-layout pip_top_right \
   --audio-mode mix \
   --video-codec h264_nvenc \
   --hwaccel cuda \
@@ -219,7 +219,7 @@ nix develop -c python scripts/generate_offset_review_clips.py \
   --start 45 \
   --duration 6 \
   --fps 60 \
-  --video-layout pip_top_right_30 \
+  --video-layout pip_top_right \
   --audio-mode mix \
   --video-codec h264_nvenc
 ```
@@ -237,7 +237,7 @@ python scripts/generate_offset_review_clips.py \
   --start 45 \
   --duration 6 \
   --fps 60 \
-  --video-layout pip_top_right_30 \
+  --video-layout pip_top_right \
   --audio-mode mix \
   --video-codec h264_nvenc
 ```
@@ -277,7 +277,7 @@ After the user chooses a candidate offset:
 For final delivery, prefer the following render defaults unless the user requests otherwise:
 
 - output fps: `60`
-- layout: `pip_top_right_30` when the user wants PiP
+- layout: `pip_top_right` when the user wants PiP
 - audio mode: `mix`
 - base video remains the main canvas
 - keep the default `80 Hz` base-audio highpass enabled unless the user explicitly wants the raw low-frequency content preserved

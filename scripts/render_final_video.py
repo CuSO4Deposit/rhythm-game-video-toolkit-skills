@@ -11,6 +11,7 @@ from pathlib import Path
 
 from explore_alignment import align_videos, refine_audio_after_video_sync
 from match_loudness import loudnorm_filter_string, loudnorm_measure
+from pip_layout import PIP_LAYOUT_CHOICES, is_pip_layout, resolve_scale_ratio
 from video_match_sampling import aggregate, collect_synced_screen_samples
 
 
@@ -40,7 +41,7 @@ def build_filter_complex(
         base_video_chain.append(base_video_filter)
     base_video_chain.append("null")
     main_video = ""
-    if video_layout == "pip_top_right_30":
+    if is_pip_layout(video_layout):
         overlay_video_chain = []
         if overlay_video_filter:
             overlay_video_chain.append(overlay_video_filter)
@@ -238,11 +239,22 @@ def main() -> None:
     parser.add_argument("--fps", type=float, default=60.0)
     parser.add_argument(
         "--video-layout",
-        choices=["pip_top_right_30", "base_only"],
-        default="pip_top_right_30",
-        help="Visual output mode. 'pip_top_right_30' overlays the iPad video; 'base_only' keeps only the phone video.",
+        choices=PIP_LAYOUT_CHOICES,
+        default="pip_top_right",
+        help="Visual output mode. 'pip_top_right' overlays the iPad video; 'base_only' keeps only the phone video. 'pip_top_right_30' remains accepted as a legacy alias.",
     )
-    parser.add_argument("--scale-ratio", type=float, default=0.30)
+    parser.add_argument(
+        "--pip-scale-percent",
+        type=float,
+        default=25.0,
+        help="PiP overlay width/height scaling percent. Default: 25.",
+    )
+    parser.add_argument(
+        "--scale-ratio",
+        type=float,
+        default=None,
+        help="Legacy PiP scale ratio override. If set, it takes precedence over --pip-scale-percent.",
+    )
     parser.add_argument("--margin", type=int, default=48)
     parser.add_argument(
         "--audio-mode", choices=["base", "overlay", "mix"], default="mix"
@@ -303,7 +315,7 @@ def main() -> None:
         trim_frames=trim_frames,
         include_clarity=args.enhance_base_clarity,
         include_brightness=(
-            args.video_layout == "pip_top_right_30" and args.overlay_brightness_match
+            is_pip_layout(args.video_layout) and args.overlay_brightness_match
         ),
         include_color_balance=not args.no_base_color_match,
     )
@@ -371,7 +383,7 @@ def main() -> None:
 
     filter_complex = build_filter_complex(
         video_layout=args.video_layout,
-        scale_ratio=args.scale_ratio,
+        scale_ratio=resolve_scale_ratio(args.scale_ratio, args.pip_scale_percent),
         margin=args.margin,
         audio_mode=args.audio_mode,
         base_video_filter=base_video_filter,

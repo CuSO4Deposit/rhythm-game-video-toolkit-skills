@@ -8,6 +8,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from pip_layout import resolve_scale_ratio
+
 
 def require_tool(name: str) -> str:
     path = shutil.which(name)
@@ -110,10 +112,16 @@ def main() -> None:
     )
     parser.add_argument("--fps", type=float, default=60.0)
     parser.add_argument(
+        "--pip-scale-percent",
+        type=float,
+        default=25.0,
+        help="PiP overlay width/height scaling percent. Default: 25.",
+    )
+    parser.add_argument(
         "--scale-ratio",
         type=float,
-        default=0.30,
-        help="Overlay scale relative to its own size.",
+        default=None,
+        help="Legacy PiP scale ratio override. If set, it takes precedence over --pip-scale-percent.",
     )
     parser.add_argument(
         "--margin", type=int, default=48, help="Top-right margin in output pixels."
@@ -144,7 +152,7 @@ def main() -> None:
         output=args.output,
         trim_frames=args.trim_frames,
         fps=args.fps,
-        scale_ratio=args.scale_ratio,
+        scale_ratio=resolve_scale_ratio(args.scale_ratio, args.pip_scale_percent),
         margin=args.margin,
         audio_mode=args.audio_mode,
         extra_video_filters=args.extra_video_filters,

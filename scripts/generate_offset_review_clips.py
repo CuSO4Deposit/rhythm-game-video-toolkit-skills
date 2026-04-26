@@ -7,6 +7,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from pip_layout import PIP_LAYOUT_CHOICES, is_pip_layout, resolve_scale_ratio
+
 
 def require_tool(name: str) -> str:
     path = shutil.which(name)
@@ -74,7 +76,7 @@ def build_filter_complex(
         f"text='{label} | offset={offset_frames}f'"
     )
 
-    if video_layout == "pip_top_right_30":
+    if is_pip_layout(video_layout):
         video = (
             f"[1:v]scale=iw*{scale_ratio}:ih*{scale_ratio}[pip];"
             f"[0:v][pip]overlay=x=W-w-{margin}:y={margin},{drawtext}[vout]"
@@ -175,8 +177,8 @@ def main() -> None:
     parser.add_argument("--fps", type=float, default=60.0)
     parser.add_argument(
         "--video-layout",
-        choices=["pip_top_right_30", "base_only"],
-        default="pip_top_right_30",
+        choices=PIP_LAYOUT_CHOICES,
+        default="pip_top_right",
     )
     parser.add_argument(
         "--audio-mode",
@@ -188,7 +190,8 @@ def main() -> None:
         choices=["libx264", "h264_nvenc"],
         default="h264_nvenc",
     )
-    parser.add_argument("--scale-ratio", type=float, default=0.30)
+    parser.add_argument("--pip-scale-percent", type=float, default=25.0)
+    parser.add_argument("--scale-ratio", type=float, default=None)
     parser.add_argument("--margin", type=int, default=48)
     args = parser.parse_args()
 
@@ -211,7 +214,7 @@ def main() -> None:
             video_layout=args.video_layout,
             audio_mode=args.audio_mode,
             video_codec=args.video_codec,
-            scale_ratio=args.scale_ratio,
+            scale_ratio=resolve_scale_ratio(args.scale_ratio, args.pip_scale_percent),
             margin=args.margin,
         )
         print(f"ok: {offset_frames} -> {output_path}")
