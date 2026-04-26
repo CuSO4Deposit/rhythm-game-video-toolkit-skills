@@ -237,6 +237,106 @@ def best_lag_frames(
     return int(lags[index]), float(corr[index])
 
 
+def best_lag_samples(
+    series_a: np.ndarray, series_b: np.ndarray, max_lag_samples: int
+) -> tuple[int, float]:
+    corr = signal.correlate(series_b, series_a, mode="full", method="fft")
+    lags = signal.correlation_lags(series_b.size, series_a.size, mode="full")
+    mask = np.abs(lags) <= max_lag_samples
+    corr = corr[mask]
+    lags = lags[mask]
+    index = int(np.argmax(corr))
+    return int(lags[index]), float(corr[index])
+
+
+def audio_detail_series(audio: np.ndarray) -> np.ndarray:
+    if audio.size < 8:
+        raise ValueError("Audio is too short.")
+    centered = audio.astype(np.float32) - np.mean(audio)
+    preemphasis = np.empty_like(centered)
+    preemphasis[0] = centered[0]
+    preemphasis[1:] = centered[1:] - 0.97 * centered[:-1]
+    return normalize_series(preemphasis)
+
+
+def audio_after_video_sync(
+    base_audio: np.ndarray,
+    overlay_audio: np.ndarray,
+    video_trim_samples: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    if video_trim_samples < 0:
+        base_audio = base_audio[abs(video_trim_samples) :]
+    elif video_trim_samples > 0:
+        overlay_audio = overlay_audio[video_trim_samples:]
+    usable = min(base_audio.size, overlay_audio.size)
+    if usable < 8:
+        raise ValueError("Audio overlap is too short after applying video sync.")
+    return base_audio[:usable], overlay_audio[:usable]
+
+
+def refine_audio_after_video_sync(
+    base: Path,
+    overlay: Path,
+    video_trim_frames: int,
+    fps: float,
+    sample_rate: int = 12000,
+    max_adjust_frames: float = 5.0,
+    analysis_window_seconds: float = 45.0,
+) -> dict:
+    base_audio = decode_audio_mono(base, sample_rate=sample_rate)
+    overlay_audio = decode_audio_mono(overlay, sample_rate=sample_rate)
+    video_trim_samples = round(video_trim_frames / fps * sample_rate)
+    synced_base, synced_overlay = audio_after_video_sync(
+        base_audio,
+        overlay_audio,
+        video_trim_samples=video_trim_samples,
+    )
+
+    usable_samples = min(synced_base.size, synced_overlay.size)
+    window_samples = round(analysis_window_seconds * sample_rate)
+    if usable_samples > window_samples:
+        start = max(0, (usable_samples - window_samples) // 2)
+        end = start + window_samples
+        synced_base = synced_base[start:end]
+        synced_overlay = synced_overlay[start:end]
+
+    base_detail = audio_detail_series(synced_base)
+    overlay_detail = audio_detail_series(synced_overlay)
+    max_adjust_samples = max(1, round(max_adjust_frames / fps * sample_rate))
+    residual_samples, score = best_lag_samples(
+        base_detail,
+        overlay_detail,
+        max_lag_samples=max_adjust_samples,
+    )
+    residual_seconds = residual_samples / sample_rate
+    residual_frames = residual_seconds * fps
+    return {
+        "sample_rate": sample_rate,
+        "analysis_window_seconds": min(
+            analysis_window_seconds,
+            usable_samples / sample_rate,
+        ),
+        "max_adjust_frames": max_adjust_frames,
+        "max_adjust_samples": max_adjust_samples,
+        "overlay_minus_base_samples_after_video_sync": residual_samples,
+        "overlay_minus_base_seconds_after_video_sync": residual_seconds,
+        "overlay_minus_base_frames_after_video_sync": residual_frames,
+        "score": score,
+        "base_adjustment": {
+            "target": "base_audio",
+            "action": (
+                "delay"
+                if residual_samples > 0
+                else "trim_head"
+                if residual_samples < 0
+                else "none"
+            ),
+            "samples": abs(residual_samples),
+            "seconds": abs(residual_seconds),
+        },
+    }
+
+
 @dataclass
 class Estimate:
     method: str

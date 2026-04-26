@@ -263,6 +263,8 @@ After the user chooses a candidate offset:
 - render a base-only layout
 - normalize loudness
 - mix or select audio tracks
+- apply a default `80 Hz` highpass on the `base` audio before denoise and loudness normalization
+- when `--audio-mode mix` is used, refine the remaining base-versus-overlay audio offset after video sync and compensate it on the base track before mixing
 - match overlay brightness
 - correct phone-video color balance
 - optionally enhance phone-video clarity
@@ -278,6 +280,8 @@ For final delivery, prefer the following render defaults unless the user request
 - layout: `pip_top_right_30` when the user wants PiP
 - audio mode: `mix`
 - base video remains the main canvas
+- keep the default `80 Hz` base-audio highpass enabled unless the user explicitly wants the raw low-frequency content preserved
+- keep residual mixed-audio refinement enabled unless the user explicitly asks to preserve the raw uncorrected mixed timing
 
 Codec selection policy:
 
@@ -286,6 +290,21 @@ Codec selection policy:
 - if CUDA is available, prefer `--video-codec h264_nvenc --hwaccel cuda`
 - if CUDA is not available, fall back to `--video-codec libx264`
 - keep the NVENC quality target at `-cq 22` as implemented by `scripts/render_final_video.py`
+
+Residual mixed-audio refinement policy:
+
+- treat the final video sync offset as the source of truth for picture alignment
+- after that sync point is fixed, allow `scripts/render_final_video.py` to estimate the small remaining audio-only offset in a narrow neighborhood
+- this refinement is intended for device-specific audio-path latency differences that remain even when the pictures are perfectly aligned
+- the current implementation applies the correction only to the `base` audio track before `amix`
+- if needed, disable it with `--no-audio-sync-refine`
+
+Base-audio cleanup policy:
+
+- before denoise and loudness normalization, the current default render path applies `highpass=f=80` to the `base` audio
+- this is meant to remove low-frequency environmental noise such as HVAC rumble, handling vibration, and desk resonance
+- the default denoise stage remains `afftdn=nf=-28:om=o`
+- if needed, disable the highpass with `--no-base-audio-highpass`
 
 ## Important Constraints
 

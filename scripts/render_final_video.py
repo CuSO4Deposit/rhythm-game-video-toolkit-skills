@@ -9,7 +9,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from explore_alignment import align_videos
+from explore_alignment import align_videos, refine_audio_after_video_sync
 from match_loudness import loudnorm_filter_string, loudnorm_measure
 from video_match_sampling import aggregate, collect_synced_screen_samples
 
@@ -73,6 +73,14 @@ def chain_filters(*filters: str | None) -> str | None:
     if not parts:
         return None
     return ",".join(parts)
+
+
+def base_audio_sync_filter(residual_samples: int) -> str | None:
+    if residual_samples == 0:
+        return None
+    if residual_samples > 0:
+        return f"adelay={residual_samples}S:all=1"
+    return f"atrim=start_sample={abs(residual_samples)},asetpts=PTS-STARTPTS"
 
 
 def encoder_args(video_codec: str) -> list[str]:
@@ -254,7 +262,17 @@ def main() -> None:
         action="store_true",
         help="Disable the default conservative denoise step on the base audio before loudness normalization.",
     )
+    parser.add_argument(
+        "--no-base-audio-highpass",
+        action="store_true",
+        help="Disable the default 80 Hz highpass on the base audio before denoise and loudness normalization.",
+    )
     parser.add_argument("--no-loudness-match", action="store_true")
+    parser.add_argument(
+        "--no-audio-sync-refine",
+        action="store_true",
+        help="Disable residual audio alignment refinement after video sync. Applied to mix mode by default.",
+    )
     parser.add_argument(
         "--video-codec", choices=["libx264", "h264_nvenc"], default="libx264"
     )
@@ -306,6 +324,18 @@ def main() -> None:
     base_audio_filter = None
     overlay_audio_filter = None
     loudness = None
+    audio_sync_refine = None
+    base_audio_sync = None
+    if args.audio_mode == "mix" and not args.no_audio_sync_refine:
+        audio_sync_refine = refine_audio_after_video_sync(
+            base=args.base,
+            overlay=args.overlay,
+            video_trim_frames=trim_frames,
+            fps=args.fps,
+        )
+        base_audio_sync = base_audio_sync_filter(
+            audio_sync_refine["overlay_minus_base_samples_after_video_sync"]
+        )
     if not args.no_loudness_match:
         base_stats = loudnorm_measure(
             args.base, args.target_i, args.target_lra, args.target_tp
@@ -321,13 +351,23 @@ def main() -> None:
         )
         if args.audio_mode in {"base", "mix"} and not args.no_base_audio_denoise:
             base_audio_filter = chain_filters(
+                base_audio_sync,
+                None if args.no_base_audio_highpass else "highpass=f=80",
                 "afftdn=nf=-28:om=o",
+                base_audio_filter,
+            )
+        else:
+            base_audio_filter = chain_filters(
+                base_audio_sync,
+                None if args.no_base_audio_highpass else "highpass=f=80",
                 base_audio_filter,
             )
         loudness = {
             "base": base_stats,
             "overlay": overlay_stats,
         }
+    elif args.audio_mode in {"base", "mix"}:
+        base_audio_filter = base_audio_sync
 
     filter_complex = build_filter_complex(
         video_layout=args.video_layout,
@@ -362,6 +402,7 @@ def main() -> None:
         "color_balance": color_balance,
         "brightness": brightness,
         "loudness": loudness,
+        "audio_sync_refine": audio_sync_refine,
         "video_layout": args.video_layout,
         "video_codec": args.video_codec,
         "hwaccel": args.hwaccel,

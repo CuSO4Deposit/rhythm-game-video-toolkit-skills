@@ -180,7 +180,8 @@ The current final render flow can:
 - trim the overlay by the aligned offset
 - either put the overlay at `30%` size in the top-right
 - or keep only the base video while still using the aligned overlay audio
-- preserve or mix audio with base-audio denoise plus loudness normalization
+- preserve or mix audio with base-audio `80 Hz` highpass, denoise, and loudness normalization
+- when using `--audio-mode mix`, refine the remaining base-versus-overlay audio offset after video sync and compensate it on the base track before mixing
 - optionally match the overlay brightness to the detected phone-screen region
 - correct the base video color balance
 - optionally enhance the base video clarity
@@ -189,6 +190,21 @@ Two common output modes:
 
 - `--video-layout pip_top_right_30`
 - `--video-layout base_only`
+
+Residual mixed-audio alignment policy:
+
+- the main alignment result still comes from video plus coarse audio consensus and stays the source of truth for picture sync
+- after that video sync point is fixed, `scripts/render_final_video.py` performs a small-window audio refinement for `--audio-mode mix`
+- this refinement measures the remaining base-versus-overlay audio offset in samples
+- it compensates only the `base` audio track before `amix`, using a tiny delay or head trim as needed
+- pass `--no-audio-sync-refine` to disable this behavior when you explicitly want the pre-existing raw mixed timing
+
+Base-audio cleanup policy:
+
+- by default, the `base` audio now passes through `highpass=f=80` before denoise and loudness normalization
+- this is intended to reduce low-frequency room rumble, desk vibration, and similar environmental noise
+- the current default denoise remains `afftdn=nf=-28:om=o`
+- pass `--no-base-audio-highpass` to disable the highpass for a specific render
 
 The visual-analysis helpers now share one synchronized sampling layer so brightness, color, and clarity estimation do not need three separate frame-sampling passes.
 
